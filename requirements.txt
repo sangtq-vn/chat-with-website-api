@@ -24,3 +24,4 @@ tokenizers==0.13.3
 transformers==4.31.0
 faiss-cpu==1.7.4
 mpi4py==3.1.5
+pdfkit

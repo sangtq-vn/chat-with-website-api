@@ -30,13 +30,13 @@ from llama_index.storage.index_store.simple_index_store import SimpleIndexStore
 
 class FaissEmbeddingStorage:
 
-    def __init__(self, data_dir, dimension=384):
+    def __init__(self, data_dir, force=False, dimension=384):
         self.d = dimension
         self.data_dir = data_dir
-        self.index = self.initialize_index()
+        self.index = self.initialize_index(force)
 
-    def initialize_index(self):
-        if os.path.exists("storage-default") and os.listdir("storage-default"):
+    def initialize_index(self, force=False):
+        if os.path.exists("storage-default") and os.listdir("storage-default") and not force:
             print("Using the presisted value")
             vector_store = FaissVectorStore.from_persist_dir("storage-default")
             storage_context = StorageContext.from_defaults(
@@ -53,6 +53,15 @@ class FaissEmbeddingStorage:
             index = VectorStoreIndex.from_documents(documents, storage_context=storage_context)
             index.storage_context.persist(persist_dir = "storage-default")
             return index
+
+    def regenerate_index(self):
+        print("generating new values")
+        documents = SimpleDirectoryReader(self.data_dir).load_data()
+        faiss_index = faiss.IndexFlatL2(self.d)
+        vector_store = FaissVectorStore(faiss_index=faiss_index)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context)
+        self.index.storage_context.persist(persist_dir = "storage-default")
 
     def get_query_engine(self):
         return self.index.as_query_engine()
